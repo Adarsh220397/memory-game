@@ -82,12 +82,6 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   @override
-  void dispose() {
-    _confettiController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     themeData = Theme.of(context);
     width = MediaQuery.of(context).size.width;

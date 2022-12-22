@@ -35,6 +35,13 @@ class DialogContainer extends StatefulWidget {
 
 class _DialogContainerState extends State<DialogContainer> {
   late ThemeData themeData;
+
+  @override
+  void dispose() {
+    widget._confettiController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     themeData = Theme.of(context);
