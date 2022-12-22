@@ -27,12 +27,12 @@ class _CircularIndicatorState extends State<CircularIndicator> {
             Padding(
               padding: EdgeInsets.only(bottom: SizeUtils.get(2)),
               child: SizedBox(
+                width: SizeUtils.get(5),
+                height: SizeUtils.get(5),
                 child: const CircularProgressIndicator(
                   strokeWidth: 3,
                   color: ColorConstants.appColor,
                 ),
-                width: SizeUtils.get(5),
-                height: SizeUtils.get(5),
               ),
             ),
             SizedBox(width: SizeUtils.get(2)),

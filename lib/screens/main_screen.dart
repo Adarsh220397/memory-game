@@ -1,365 +1,318 @@
 import 'dart:async';
-
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flip_card/flip_card.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/src/widgets/container.dart';
-import 'package:flutter/src/widgets/framework.dart';
-import 'package:memorygame/screens/home_screen.dart';
 import 'package:memorygame/services/client_service.dart';
 import 'package:memorygame/services/models/card_model.dart';
+import 'package:memorygame/utils/constants/color_constants.dart';
+import 'package:memorygame/utils/constants/string_constants.dart';
+import 'package:memorygame/utils/size_utils.dart';
+import 'package:memorygame/utils/widgets/circular_indicator.dart';
+import 'package:confetti/confetti.dart';
+import 'package:memorygame/utils/widgets/dialog_box_widget.dart';
 
-int level = 8;
-
-class Home extends StatefulWidget {
-  // final int size;
-
-  const Home({
+class MainScreen extends StatefulWidget {
+  const MainScreen({
     Key? key,
   }) : super(key: key);
   @override
-  _HomeState createState() => _HomeState();
+  _MainScreenState createState() => _MainScreenState();
 }
 
-class _HomeState extends State<Home> {
+class _MainScreenState extends State<MainScreen> {
+  late ThemeData themeData;
+  late ConfettiController _confettiController;
+  bool isPlaying = false;
   List<GlobalKey<FlipCardState>> cardStateKeys = [];
   List<bool> cardFlips = [];
   bool isLoading = false;
   int previousIndex = -1;
-  int nextIndex = 1;
+  int moves = 0;
+  final player = AudioPlayer();
   bool flip = false;
   // bool bSame = false;
-  int time = 0;
+
   Timer? timer;
-  int _time = 5;
-  int? _left;
-  bool _start = false;
-  bool? _isFinished;
+  int time = 0;
   List<CardModel> gridViewTiles = [];
   List<CardModel> questionPairs = [];
   List<CardModel> myPairs = [];
   bool _wait = false;
   List<int> tempArray = [];
+  double? width;
+  double? height;
   @override
   void initState() {
     super.initState();
+
+    _confettiController =
+        ConfettiController(duration: const Duration(seconds: 10));
     reStart();
   }
 
-  getData() async {
+  Future<void> getData() async {
     for (var i = 0; i < myPairs.length; i++) {
       cardStateKeys.add(GlobalKey<FlipCardState>());
       cardFlips.add(true);
     }
 
-    // data.shuffle();
-
+    startTimer();
     gridViewTiles.shuffle();
   }
 
-  startTimer() {
-    timer = Timer.periodic(Duration(seconds: 1), (t) {
-      setState(() {
-        time = time - 1;
-      });
+  void startTimer() {
+    timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (mounted) {
+        setState(() {
+          time = time + 1;
+        });
+      }
     });
   }
 
-  void reStart() async {
+  Future<void> reStart() async {
     isLoading = true;
 
-    startTimer();
-    myPairs = await ClientService.instance.getPairs();
-    //  myPairs.shuffle();
-    //  cardStateKeys = await ClientService.instance.getCardStateKeys();
+    myPairs = await ClientService.instance.getDataPairs();
+
     gridViewTiles = myPairs;
     await getData();
-    _time = 5;
-    _left = (gridViewTiles.length ~/ 2);
-    _isFinished = false;
-    Future.delayed(const Duration(seconds: 1), () {
-      setState(() {
-        //  getQuaestionPairs();
-        //selected = false;
-        _start = true;
-        timer!.cancel();
-      });
-    });
+
     isLoading = false;
   }
 
   @override
   void dispose() {
+    _confettiController.dispose();
     super.dispose();
-  }
-
-  Widget getItem(int index) {
-    return Container(
-      decoration: BoxDecoration(
-          color: Colors.grey[100],
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black45,
-              blurRadius: 3,
-              spreadRadius: 0.8,
-              offset: Offset(2.0, 1),
-            )
-          ],
-          borderRadius: BorderRadius.circular(5)),
-      margin: EdgeInsets.all(4.0),
-      child: Image.asset(gridViewTiles[index].imageAssetPath),
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return isLoading
-        ? CircularProgressIndicator()
-        : _isFinished!
-            ? Scaffold(
-                body: Center(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        reStart();
-                      });
-                    },
-                    child: Container(
-                      height: 50,
-                      width: 200,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: Colors.blue,
-                        borderRadius: BorderRadius.circular(24),
-                      ),
-                      child: Text(
-                        "Replay",
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 17,
-                            fontWeight: FontWeight.w500),
-                      ),
+    themeData = Theme.of(context);
+    width = MediaQuery.of(context).size.width;
+
+    height = MediaQuery.of(context).size.height;
+    return WillPopScope(
+      onWillPop: () async {
+        return await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => DialogContainer(
+            themeData: themeData,
+            moves: moves,
+            time: time,
+            confettiController: _confettiController,
+            text: 'Lost',
+            icon: Icons.close_outlined,
+            color: Colors.red,
+            bCompleted: false,
+          ),
+        );
+      },
+      child: Scaffold(
+        appBar: AppBar(
+          centerTitle: true,
+          title: Text(
+            'MEMORY',
+            style: themeData.textTheme.headline6!.copyWith(color: Colors.white),
+          ),
+          actions: [
+            InkWell(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (context) => DialogContainer(
+                      themeData: themeData,
+                      moves: moves,
+                      time: time,
+                      confettiController: _confettiController,
+                      text: 'Lost',
+                      icon: Icons.close_outlined,
+                      color: Colors.red,
+                      bCompleted: false,
                     ),
-                  ),
-                ),
-              )
-            : Scaffold(
-                body: SafeArea(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: <Widget>[
-                        Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: _time > 0
-                              ? Text(
-                                  '$_time',
-                                  style: Theme.of(context).textTheme.headline3,
-                                )
-                              : Text(
-                                  'Left:$_left',
-                                  style: Theme.of(context).textTheme.headline3,
-                                ),
-                        ),
-                        Theme(
-                          data: ThemeData.dark(),
-                          child: Padding(
-                            padding: EdgeInsets.all(16.0),
-                            child: GridView.builder(
-                              shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              gridDelegate:
-                                  SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                              ),
-                              itemBuilder: (context, index) => FlipCard(
-                                key: cardStateKeys[index],
-                                onFlip: () => onFlip(index),
-                                direction: FlipDirection.HORIZONTAL,
-                                flipOnTouch: _wait ? false : cardFlips[index],
-                                front: Container(
-                                  margin: EdgeInsets.all(4.0),
-                                  color: Colors.deepOrange.withOpacity(0.3),
-                                ),
-                                back: gridViewTiles[index].isSelected
-                                    ? Container(
-                                        color: Colors.white,
-                                      )
-                                    : Container(
-                                        margin: EdgeInsets.all(4.0),
-                                        decoration: BoxDecoration(
-                                          image: DecorationImage(
-                                            image: AssetImage(
-                                                gridViewTiles[index]
-                                                    .imageAssetPath),
-                                            fit: BoxFit.fill,
-                                          ),
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                              ),
-                              // : getItem(index),
-                              itemCount: gridViewTiles.length,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
+                  );
+                },
+                child: const Icon(Icons.close, color: Colors.white))
+          ],
+        ),
+        body: SafeArea(child: mainScreenBodyUI()),
+      ),
+    );
   }
 
-  // bool isExist(int index) {
+  SingleChildScrollView mainScreenBodyUI() {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          SizedBox(
+            height: SizeUtils.get(5),
+          ),
+          Padding(
+            padding: EdgeInsets.all(SizeUtils.get(4)),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'MOVES : $moves',
+                  style: themeData.textTheme.titleMedium,
+                ),
+                Text(
+                  "TIME TAKEN : $time SEC",
+                  style: themeData.textTheme.titleMedium,
+                ),
+              ],
+            ),
+          ),
+          isLoading
+              ? const CircularIndicator()
+              : Padding(
+                  padding: EdgeInsets.all(SizeUtils.get(4)),
+                  child: GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: width! > 600 && height! < 700
+                          ? 6
+                          : width! > 600
+                              ? 4
+                              : 3,
+                    ),
+                    itemBuilder: (context, index) => flipCardUI(index),
+                    itemCount: gridViewTiles.length,
+                  ),
+                ),
+        ],
+      ),
+    );
+  }
 
-  //   print('----$exist--------');
-  //   return exist;
-  // }
+  FlipCard flipCardUI(int index) {
+    return FlipCard(
+      key: cardStateKeys[index],
+      speed: 200,
+      onFlip: () => onFlip(index),
+      direction: FlipDirection.HORIZONTAL,
+      flipOnTouch: !_wait ? cardFlips[index] : false,
+      front: Container(
+        margin: const EdgeInsets.all(4.0),
+        decoration: const BoxDecoration(
+          color: Colors.amber,
+          image: DecorationImage(
+            image: AssetImage(StringConstants.questionImage),
+            fit: BoxFit.fill,
+          ),
+        ),
+      ),
+      back: gridViewTiles[index].isSelected
+          ? Container(
+              color: Colors.white,
+            )
+          : Container(
+              margin: const EdgeInsets.all(4.0),
+              decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: AssetImage(gridViewTiles[index].imageAssetPath),
+                    fit: BoxFit.fill,
+                  ),
+                  border:
+                      Border.all(color: ColorConstants.borderColor, width: 2)),
+            ),
+    );
+  }
 
-  onFlip(int index) {
-    // if (tempArray
-    //     .any((el) => el == index)) {
-    //   return;
-    // }
+  Future<void> onFlip(int index) async {
+    if (!_wait) {
+      if (!flip) {
+        flip = true;
 
-    // if (tempArray.length < 2) {
-    //   tempArray.add(index);
-    //   print(tempArray);
-    //   print('-------------------');
-    // } else {
-    //   for (int i in tempArray) {
-    //     Future.delayed(const Duration(milliseconds: 150), () {
-    //       cardStateKeys[i].currentState!.toggleCard();
-    //       // cardStateKeys[tempArray[1]].currentState!.toggleCard();
-    //     });
-    //     // gridViewTiles[tempArray[0]].isSelected = false;
-    //     // gridViewTiles[tempArray[1]].isSelected = false;
+        player.play(
+          AssetSource(StringConstants.selectAudio),
+          volume: 1,
+        );
 
-    //     tempArray.clear();
-    //     tempArray.add(index);
-    //     print(tempArray);
-    //   }
-    //   // bool exist = tempArray.any((el) => el == index);
-    //   // if (exist) print(tempArray);
-    //   if (tempArray.length == 2) {
-    //     ("lenght 2.....");
+        previousIndex = index;
+      } else {
+        flip = false;
 
-    //     // this.tempList[0] = 0
-
-    //     // this.tempList[1] = 1
-
-    //     if (gridViewTiles[tempArray[0]].imageAssetPath ==
-    //         gridViewTiles[tempArray[1]].imageAssetPath) {
-    //       print("isMatched");
-
-    //       gridViewTiles[tempArray[0]].isSelected = true;
-    //       print(gridViewTiles[index].isSelected);
-    //       print(gridViewTiles[tempArray[0]].imageAssetPath);
-    //       print(gridViewTiles[tempArray[0]].isSelected);
-
-    //       gridViewTiles[tempArray[1]].isSelected = true;
-
-    //       print(gridViewTiles[tempArray[1]].isSelected);
-    //     }
-    //   }
-    //   setState(() {});
-    if (!flip) {
-      // if (tempArray.isEmpty) {
-      flip = true;
-
-      print('-flip-true--------');
-
-      previousIndex = index;
-
-      // tempArray.add(index);
-
-      // for (int i in tempArray) {
-      //   print(i);
-      // }
-      // cardStateKeys[tempArray[0]]
-      //     .currentState!
-      //     .toggleCard();
-    } else {
-      print('-flip-false--------');
-      //  tempArray.add(index);
-      // for (int i in tempArray) {
-      //   print(i);
-      // }
-      // if (tempArray.length > 2) {
-      //   print('------------');
-      //   // cardStateKeys[tempArray[0]]
-      //   //     .currentState!
-      //   //     .toggleCard();
-      //   // cardStateKeys[tempArray[1]]
-      //   //     .currentState!
-      //   //     .toggleCard();
-
-      //   tempArray.removeRange(0, 2);
-      // }
-      flip = false;
-      if (previousIndex != index) {
-        if (gridViewTiles[previousIndex].imageAssetPath !=
-            gridViewTiles[index].imageAssetPath) {
-          _wait = true;
-
-          Future.delayed(const Duration(milliseconds: 1500), () {
-            print('----------');
-            cardStateKeys[previousIndex].currentState!.toggleCard();
-
-            previousIndex = index;
-
-            cardStateKeys[previousIndex].currentState!.toggleCard();
-
-            Future.delayed(const Duration(milliseconds: 160), () {
-              setState(() {
-                print('------');
-                _wait = false;
-              });
+        if (previousIndex != index) {
+          if (gridViewTiles[previousIndex].imageAssetPath !=
+              gridViewTiles[index].imageAssetPath) {
+            player.play(
+              AssetSource(StringConstants.selectAudio),
+              volume: 1,
+            );
+            setState(() {
+              _wait = true;
             });
-          });
-          // previousIndex = index;
-        } else {
-          cardFlips[previousIndex] = false;
-          cardFlips[index] = false;
-          print(cardFlips);
-          //
-          //bSame = true;
 
-          gridViewTiles[previousIndex].isSelected = true;
-          gridViewTiles[index].isSelected = true;
+            await toggle(index);
+          } else {
+            cardFlips[previousIndex] = false;
+            cardFlips[index] = false;
 
-          if (cardFlips.every((t) => t == false)) {
-            print("Won");
-            showResult();
+            player.play(
+              AssetSource(StringConstants.wellDoneAudio),
+              volume: 1,
+            );
+            gridViewTiles[previousIndex].isSelected = true;
+            gridViewTiles[index].isSelected = true;
+            if (cardFlips.every((t) => t == false)) {
+              timer!.cancel();
+              // player.play(
+              //   AssetSource('firewols.mp3'),
+              //   volume: 1,
+              // );
+
+              showResult();
+            }
+            setState(() {
+              moves++;
+            });
           }
-          setState(() {});
         }
       }
     }
   }
 
-  showResult() {
+  Future<void> toggle(int index) async {
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      cardStateKeys[previousIndex].currentState!.toggleCard();
+
+      previousIndex = index;
+
+      cardStateKeys[previousIndex].currentState!.toggleCard();
+
+      setState(() {
+        _wait = false;
+        moves++;
+      });
+    });
+  }
+
+  void showResult() {
+    if (isPlaying) {
+      _confettiController.stop();
+    } else {
+      _confettiController.play();
+    }
+    isPlaying = !isPlaying;
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: Text("Won!!!"),
-        content: Text(
-          "Time $time",
-          //  style: Theme.of(context).textTheme.display2,
-        ),
-        actions: <Widget>[
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (context) => HomeScreen(
-                      //   size: level,
-                      ),
-                ),
-              );
-            },
-            child: Text("HOME"),
-          ),
-        ],
+      builder: (context) => DialogContainer(
+        themeData: themeData,
+        moves: moves,
+        time: time,
+        confettiController: _confettiController,
+        text: 'Won !!',
+        icon: Icons.check_circle_outline,
+        color: Colors.green,
+        bCompleted: true,
       ),
     );
   }
