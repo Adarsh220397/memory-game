@@ -206,15 +206,19 @@ class _MainScreenState extends State<MainScreen> {
           ? Container(
               color: Colors.white,
             )
-          : Container(
-              margin: const EdgeInsets.all(4.0),
-              decoration: BoxDecoration(
+          : Card(
+              elevation: 10,
+              child: Container(
+                margin: const EdgeInsets.all(4.0),
+                decoration: BoxDecoration(
                   image: DecorationImage(
                     image: AssetImage(gridViewTiles[index].imageAssetPath),
                     fit: BoxFit.fill,
                   ),
-                  border:
-                      Border.all(color: ColorConstants.borderColor, width: 2)),
+                  // border: Border.all(
+                  //     color: ColorConstants.borderColor, width: 1)
+                ),
+              ),
             ),
     );
   }
