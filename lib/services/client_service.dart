@@ -1,7 +1,6 @@
 import 'package:memorygame/services/models/card_model.dart';
 
 class ClientService {
-  //Singleton instance
   ClientService._internal();
   static ClientService instance = ClientService._internal();
 

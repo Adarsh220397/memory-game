@@ -16,9 +16,12 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late ThemeData themeData;
+
   bool isLoading = false;
+
   int levelNumber = 1;
   int numberOfCards = 12;
+
   @override
   void initState() {
     super.initState();
@@ -26,8 +29,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    var height = MediaQuery.of(context).size.height;
-    var width = MediaQuery.of(context).size.width;
+    double height = MediaQuery.of(context).size.height;
+    double width = MediaQuery.of(context).size.width;
     themeData = Theme.of(context);
     return isLoading
         ? const CircularIndicator()

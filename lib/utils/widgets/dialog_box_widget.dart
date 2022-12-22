@@ -8,6 +8,15 @@ import 'package:memorygame/utils/size_utils.dart';
 import 'package:memorygame/utils/widgets/icon_widget.dart';
 
 class DialogContainer extends StatefulWidget {
+  final IconData icon;
+  final ThemeData themeData;
+  final int moves;
+  final int time;
+  final ConfettiController _confettiController;
+  final String text;
+  final Color color;
+  final bool bCompleted;
+
   const DialogContainer({
     Key? key,
     required this.themeData,
@@ -20,14 +29,6 @@ class DialogContainer extends StatefulWidget {
     required ConfettiController confettiController,
   })  : _confettiController = confettiController,
         super(key: key);
-  final IconData icon;
-  final ThemeData themeData;
-  final int moves;
-  final int time;
-  final ConfettiController _confettiController;
-  final String text;
-  final Color color;
-  final bool bCompleted;
 
   @override
   State<DialogContainer> createState() => _DialogContainerState();

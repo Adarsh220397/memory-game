@@ -4,7 +4,6 @@ import 'package:flip_card/flip_card.dart';
 import 'package:flutter/material.dart';
 import 'package:memorygame/services/client_service.dart';
 import 'package:memorygame/services/models/card_model.dart';
-import 'package:memorygame/utils/constants/color_constants.dart';
 import 'package:memorygame/utils/constants/string_constants.dart';
 import 'package:memorygame/utils/size_utils.dart';
 import 'package:memorygame/utils/widgets/circular_indicator.dart';
@@ -22,25 +21,27 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   late ThemeData themeData;
   late ConfettiController _confettiController;
-  bool isPlaying = false;
+
   List<GlobalKey<FlipCardState>> cardStateKeys = [];
   List<bool> cardFlips = [];
+
+  bool isPlaying = false;
   bool isLoading = false;
+  bool flip = false;
+  bool wait = false;
+
   int previousIndex = -1;
   int moves = 0;
-  final player = AudioPlayer();
-  bool flip = false;
-  // bool bSame = false;
-
-  Timer? timer;
   int time = 0;
-  List<CardModel> gridViewTiles = [];
-  List<CardModel> questionPairs = [];
-  List<CardModel> myPairs = [];
-  bool _wait = false;
-  List<int> tempArray = [];
   double? width;
   double? height;
+
+  List<CardModel> gridViewTiles = [];
+  List<CardModel> cardList = [];
+
+  Timer? timer;
+  final player = AudioPlayer();
+
   @override
   void initState() {
     super.initState();
@@ -50,8 +51,19 @@ class _MainScreenState extends State<MainScreen> {
     reStart();
   }
 
+  Future<void> reStart() async {
+    isLoading = true;
+
+    cardList = await ClientService.instance.getDataPairs();
+
+    gridViewTiles = cardList;
+    await getData();
+
+    isLoading = false;
+  }
+
   Future<void> getData() async {
-    for (var i = 0; i < myPairs.length; i++) {
+    for (var i = 0; i < cardList.length; i++) {
       cardStateKeys.add(GlobalKey<FlipCardState>());
       cardFlips.add(true);
     }
@@ -68,17 +80,6 @@ class _MainScreenState extends State<MainScreen> {
         });
       }
     });
-  }
-
-  Future<void> reStart() async {
-    isLoading = true;
-
-    myPairs = await ClientService.instance.getDataPairs();
-
-    gridViewTiles = myPairs;
-    await getData();
-
-    isLoading = false;
   }
 
   @override
@@ -191,7 +192,7 @@ class _MainScreenState extends State<MainScreen> {
       speed: 200,
       onFlip: () => onFlip(index),
       direction: FlipDirection.HORIZONTAL,
-      flipOnTouch: !_wait ? cardFlips[index] : false,
+      flipOnTouch: !wait ? cardFlips[index] : false,
       front: Container(
         margin: const EdgeInsets.all(4.0),
         decoration: const BoxDecoration(
@@ -215,8 +216,6 @@ class _MainScreenState extends State<MainScreen> {
                     image: AssetImage(gridViewTiles[index].imageAssetPath),
                     fit: BoxFit.fill,
                   ),
-                  // border: Border.all(
-                  //     color: ColorConstants.borderColor, width: 1)
                 ),
               ),
             ),
@@ -224,7 +223,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> onFlip(int index) async {
-    if (!_wait) {
+    if (!wait) {
       if (!flip) {
         flip = true;
 
@@ -245,7 +244,7 @@ class _MainScreenState extends State<MainScreen> {
               volume: 1,
             );
             setState(() {
-              _wait = true;
+              wait = true;
             });
 
             await toggle(index);
@@ -265,7 +264,6 @@ class _MainScreenState extends State<MainScreen> {
               //   AssetSource('firewols.mp3'),
               //   volume: 1,
               // );
-
               showResult();
             }
             setState(() {
@@ -286,7 +284,7 @@ class _MainScreenState extends State<MainScreen> {
       cardStateKeys[previousIndex].currentState!.toggleCard();
 
       setState(() {
-        _wait = false;
+        wait = false;
         moves++;
       });
     });

@@ -13,6 +13,7 @@ class CircularIndicator extends StatefulWidget {
 
 class _CircularIndicatorState extends State<CircularIndicator> {
   late ThemeData themeData;
+
   @override
   Widget build(BuildContext context) {
     themeData = Theme.of(context);
